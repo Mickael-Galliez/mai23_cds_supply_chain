@@ -1,18 +1,19 @@
+1 - Collecte des données
+
 # Blocage de la sauvegarde automatique.
 %autosave 0
-
+​
 # Importation des librairies nécessaires.
 from bs4 import BeautifulSoup as bs
 import requests 
 import pandas as pd
 import datetime as dt
-
+​
 # Création de l'objet BeautifulSoup dans une variable nommée soup.
 url = "https://fr.trustpilot.com/review/www.allopneus.com"
 page = requests.get(url)  
 soup = bs(page.content, "lxml")
-print(soup.prettify())
-
+​
 # Récupération des informations clés de la page.
 nom_entreprise = soup.find('span', attrs = {'class' : "typography_display-s__qOjh6 typography_appearance-default__AAY17 title_displayName__TtDDM"}).text
 nombre_avis = soup.find('p', attrs = {'class' : "typography_body-l__KUYFJ typography_appearance-default__AAY17"}).text
@@ -20,18 +21,18 @@ moyenne_note = soup.find('span', attrs = {'class' : "typography_heading-m__T_L_X
 print("Nom de l'entreprise :", nom_entreprise)
 print("Nombre d'avis :", nombre_avis)
 print("Moyenne des notes :", moyenne_note)
-
+​
 # Collecte des informations sur Allopneus:
 url = "https://fr.trustpilot.com/review/www.allopneus.com"
 nombre_total_pages = 2965
 nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,localisations,réponses,date_réponses = [],[],[],[],[],[],[],[],[],[]  
-
+​
 for page in range(1, nombre_total_pages + 1):
     url_page = f'{url}?page={page}'
     response = requests.get(url_page)
     soup = bs(response.content, 'html.parser') 
     avis_client = soup.find_all('div', attrs = {'class': "styles_reviewCardInner__EwDq2"})
-
+​
     for avis in avis_client: 
         nom_client_element = avis.find('span',class_='typography_heading-xxs__QKBS8 typography_appearance-default__AAY17')
         nom_client = nom_client_element.text.strip() if nom_client_element else None
@@ -66,17 +67,43 @@ for page in range(1, nombre_total_pages + 1):
             date_réponses.append(date_réponse)
         else:
             date_réponses.append(None) 
-
+​
 # Intégration des données dans un DataFrame.
 df_Allopneus = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
                columns =["Client","Nombre d'avis publié","Note","Titres","Commentaire","Date de l'expérience","Date de publication","Réponse","Date de réponse"])
-
+​
 # Ajout du nom de l'entreprise évaluée dans nouvelle colonne.
 df_Allopneus["Entreprise"] = nom_entreprise
 df_Allopneus.head()
-
+​
 # Vérification : est-ce que l'ensemble des avis a bien été collecté ?
 df_Allopneus.info()
+Autosave disabled
+Nom de l'entreprise : Allopneus 
+Nombre d'avis : Total : 63 526
+Moyenne des notes : 4,2
+
+2 - Data pre-processing
+
+# Transformer les colonnes.
+df_Allopneus["Nombre d'avis publié"] = df_Allopneus["Nombre d'avis publié"].str.replace(' avis', '')
+df_Allopneus["Note"] = df_Allopneus["Note"].str.extract(r'(\d+)')
+import locale
+locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"].str.extract(r'(\d{2}\s\w+\s\d{4})')[0], format='%d %B %Y').dt.date
+df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
+df_Allopneus["Date de réponse"] = pd.to_datetime(df_Allopneus["Date de réponse"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
+df_Allopneus.head() 
+​
+# Transformer les colonnes.
+df_Allopneus["Nombre d'avis publié"] = df_Allopneus["Nombre d'avis publié"].str.replace(' avis', '')
+df_Allopneus["Note"] = df_Allopneus["Note"].str.extract(r'(\d+)')
+import locale
+locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"].str.extract(r'(\d{2}\s\w+\s\d{4})')[0], format='%d %B %Y').dt.date
+df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
+df_Allopneus["Date de réponse"] = pd.to_datetime(df_Allopneus["Date de réponse"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
+df_Allopneus.head() 
 
 # Exporation du DataFrame dans un fichier Excel.
 df_Allopneus.to_excel(r'C:\Users\micka\OneDrive\Bureau\df_Allopneus.xlsx', index=False)
