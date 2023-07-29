@@ -1,1 +1,82 @@
+# Blocage de la sauvegarde automatique.
+%autosave 0
 
+# Importation des librairies nécessaires.
+from bs4 import BeautifulSoup as bs
+import requests 
+import pandas as pd
+import datetime as dt
+
+# Création de l'objet BeautifulSoup dans une variable nommée soup.
+url = "https://fr.trustpilot.com/review/www.allopneus.com"
+page = requests.get(url)  
+soup = bs(page.content, "lxml")
+print(soup.prettify())
+
+# Récupération des informations clés de la page.
+nom_entreprise = soup.find('span', attrs = {'class' : "typography_display-s__qOjh6 typography_appearance-default__AAY17 title_displayName__TtDDM"}).text
+nombre_avis = soup.find('p', attrs = {'class' : "typography_body-l__KUYFJ typography_appearance-default__AAY17"}).text
+moyenne_note = soup.find('span', attrs = {'class' : "typography_heading-m__T_L_X typography_appearance-default__AAY17"}).text
+print("Nom de l'entreprise :", nom_entreprise)
+print("Nombre d'avis :", nombre_avis)
+print("Moyenne des notes :", moyenne_note)
+
+# Collecte des informations sur Allopneus:
+url = "https://fr.trustpilot.com/review/www.allopneus.com"
+nombre_total_pages = 2965
+nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,localisations,réponses,date_réponses = [],[],[],[],[],[],[],[],[],[]  
+
+for page in range(1, nombre_total_pages + 1):
+    url_page = f'{url}?page={page}'
+    response = requests.get(url_page)
+    soup = bs(response.content, 'html.parser') 
+    avis_client = soup.find_all('div', attrs = {'class': "styles_reviewCardInner__EwDq2"})
+
+    for avis in avis_client: 
+        nom_client_element = avis.find('span',class_='typography_heading-xxs__QKBS8 typography_appearance-default__AAY17')
+        nom_client = nom_client_element.text.strip() if nom_client_element else None
+        nom_clients.append(nom_client)
+        nombre_avis_publié = avis.find('span',class_='typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l').text.strip() 
+        nombre_avis_publiés.append(nombre_avis_publié)
+        note = avis.find(class_ = "star-rating_starRating__4rrcf star-rating_medium__iN6Ty").findChild() 
+        notes.append(note["alt"])
+        titre = avis.find('h2',class_='typography_heading-s__f7029 typography_appearance-default__AAY17').text.strip() 
+        titres.append(titre)
+        commentaire_element = avis.find('p',class_='typography_body-l__KUYFJ typography_appearance-default__AAY17 typography_color-black__5LYEn')
+        commentaire = commentaire_element.text.strip() if commentaire_element else None   
+        commentaires.append(commentaire)
+        date_expérience_element = avis.find('p',class_='typography_body-m__xgxZ_ typography_appearance-default__AAY17') 
+        date_expérience = date_expérience_element.text.strip() if date_expérience_element else None
+        date_expériences.append(date_expérience)
+        date_publication_element = avis.find('time', class_="")
+        if date_publication_element:
+            date_publication = date_publication_element.get('datetime')
+            date_publications.append(date_publication)
+        else:
+            date_publications.append(None)  
+        réponse_element = avis.find('p', class_='typography_body-m__xgxZ_ typography_appearance-default__AAY17 styles_message__shHhX')
+        if réponse_element:
+            réponse = réponse_element.text.strip()
+            réponses.append(réponse)
+        else:
+            réponses.append(None)     
+        date_réponse_element = avis.find('time', class_='typography_body-m__xgxZ_ typography_appearance-subtle__8_H2l styles_replyDate__Iem0_')  
+        if date_réponse_element:
+            date_réponse = date_réponse_element.get('datetime')
+            date_réponses.append(date_réponse)
+        else:
+            date_réponses.append(None) 
+
+# Intégration des données dans un DataFrame.
+df_Allopneus = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
+               columns =["Client","Nombre d'avis publié","Note","Titres","Commentaire","Date de l'expérience","Date de publication","Réponse","Date de réponse"])
+
+# Ajout du nom de l'entreprise évaluée dans nouvelle colonne.
+df_Allopneus["Entreprise"] = nom_entreprise
+df_Allopneus.head()
+
+# Vérification : est-ce que l'ensemble des avis a bien été collecté ?
+df_Allopneus.info()
+
+# Exporation du DataFrame dans un fichier Excel.
+df_Allopneus.to_excel(r'C:\Users\micka\OneDrive\Bureau\df_Allopneus.xlsx', index=False)
