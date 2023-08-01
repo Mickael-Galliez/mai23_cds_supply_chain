@@ -6,6 +6,7 @@
 # Importation des librairies nécessaires.
 from bs4 import BeautifulSoup as bs
 import requests 
+import time
 import pandas as pd
 import datetime as dt
 
@@ -14,18 +15,10 @@ url = "https://fr.trustpilot.com/review/www.allopneus.com"
 page = requests.get(url)  
 soup = bs(page.content, "lxml")
 
-# Récupération des informations clés de la page.
-nom_entreprise = soup.find('span', attrs = {'class' : "typography_display-s__qOjh6 typography_appearance-default__AAY17 title_displayName__TtDDM"}).text
-nombre_avis = soup.find('p', attrs = {'class' : "typography_body-l__KUYFJ typography_appearance-default__AAY17"}).text
-moyenne_note = soup.find('span', attrs = {'class' : "typography_heading-m__T_L_X typography_appearance-default__AAY17"}).text
-print("Nom de l'entreprise :", nom_entreprise)
-print("Nombre d'avis :", nombre_avis)
-print("Moyenne des notes :", moyenne_note)
-
 # Collecte des informations sur Allopneus:
 url = "https://fr.trustpilot.com/review/www.allopneus.com"
 from_page = 1
-to_page = 200
+to_page = 3000
 nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,localisations,réponses,date_réponses = [],[],[],[],[],[],[],[],[],[]  
 
 for page in range(from_page, to_page + 1):
@@ -67,47 +60,43 @@ for page in range(from_page, to_page + 1):
             date_réponse = date_réponse_element.get('datetime')
             date_réponses.append(date_réponse)
         else:
-            date_réponses.append(None) 
+            date_réponses.append(None)
+        time.sleep(0.0001)
 
 # Intégration des données dans un DataFrame.
-df_1 = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
+df_Allopneus = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
                columns =["Client","Nombre d'avis publié","Note","Titres","Commentaire","Date de l'expérience","Date de publication","Réponse","Date de réponse"])
 
 # Ajout du nom de l'entreprise évaluée dans nouvelle colonne.
-df_1["Entreprise"] = nom_entreprise
-df_1.info()
-
-# Etant donné qu'il est impossible d'appliquer le scripte en 1 fois, j'essaye de l'appliquer par groupe de 200 pages soit en 15 scripte donnant 15 DataFrame..........
-
-# Consolidation des 15 DataFrame.
-df_Allopneus = pd.concat([df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13, df14, df15], ignore_index=True)
+df_Allopneus["Entreprise"] = nom_entreprise
 
 # Vérification : est-ce que l'ensemble des avis a bien été collecté ?
 df_Allopneus.info()
 
-# Exportation du DataFrame dans un fichier Excel.
-df_Allopneus.to_excel(r'C:\Users\micka\OneDrive\Bureau\df_Allopneus.xlsx', index=False)
+# Exportation du DataFrame dans un fichier csv.
+df_Allopneus.to_csv(r'C:\Users\Windows\Desktop\df_Allopneus.csv', index=False)
 
 2 - Data pre-processing
 
 import locale
 import pandas as pd
+from datetime import datetime
 
 # Importer le DataFrame consolidé.
-df_Allopneus = pd.read_excel(C:\Users\micka\OneDrive\Bureau\df_Allopneus.xlsx)
+df_Allopneus = pd.read_csv(r'C:\\Users\\Windows\\Desktop\\df_Allopneus.csv')
 df_Allopneus.head()
 
 # Transformer les colonnes.
 df_Allopneus["Nombre d'avis publié"] = df_Allopneus["Nombre d'avis publié"].str.replace(' avis', '')
 df_Allopneus["Note"] = df_Allopneus["Note"].str.extract(r'(\d+)')
 locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
-df_Allopneus = pd.read_excel("df_Allopneus.xlsx")
-df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"], format='%d %B %Y')
-df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"], format='%d %B %Y', errors='coerce')
-df_Allopneus["Date de l'expérience"] = df_Allopneus["Date de l'expérience"].dt.strftime('%Y-%m-%d')
+df_Allopneus["Date de l'expérience"] = df_Allopneus["Date de l'expérience"].str.replace("Date de l'expérience: ", "")
 locale.setlocale(locale.LC_TIME, '')
+df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"], format='%d %B %Y').dt.strftime('%Y-%m-%d')
 df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
 df_Allopneus["Date de réponse"] = pd.to_datetime(df_Allopneus["Date de réponse"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
+df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], errors='coerce')
+df_Allopneus = df_Allopneus[df_Allopneus["Date de publication"].notnull()]
 
-# Exportation du DataFrame dans un fichier Excel.
-df_Allopneus.to_excel(r'C:\Users\micka\OneDrive\Bureau\df_Allopneus.xlsx', index=False)
+# Exportation du DataFrame dans un fichier csv.
+df_Allopneus.to_csv(r'C:\Users\Windows\Desktop\df_Allopneus_clean.csv', index=False)
