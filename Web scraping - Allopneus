@@ -61,7 +61,7 @@ for page in range(from_page, to_page + 1):
             date_réponses.append(date_réponse)
         else:
             date_réponses.append(None)
-        time.sleep(0.0001)
+        time.sleep(2)
 
 # Intégration des données dans un DataFrame.
 df_Allopneus = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
