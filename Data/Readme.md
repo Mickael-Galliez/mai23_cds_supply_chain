@@ -1,1 +1,1 @@
-Dossier où déposer les données collectés.
+Dossier où déposer les données collectées.
