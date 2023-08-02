@@ -111,7 +111,7 @@ for page in range(from_page, to_page + 1):
 
 
     #Temporisation: attendre avant la prochaine requete html
-    duree_temporisation = 1 #np.random.randint(low=4, high=10)#*0.2
+    duree_temporisation = np.random.randint(low=4, high=10)#*0.2
     time.sleep(duree_temporisation)
     
     #Informations reporte apres extraction de donnees de chaque page:
