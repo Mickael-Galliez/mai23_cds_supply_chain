@@ -61,7 +61,7 @@ for page in range(from_page, to_page + 1):
             date_réponses.append(date_réponse)
         else:
             date_réponses.append(None)
-        time.sleep(2)
+        time.sleep(1)
 
 # Intégration des données dans un DataFrame.
 df_Allopneus = pd.DataFrame(list(zip(nom_clients,nombre_avis_publiés,notes,titres,commentaires,date_expériences,date_publications,réponses,date_réponses)),
@@ -95,8 +95,6 @@ locale.setlocale(locale.LC_TIME, '')
 df_Allopneus["Date de l'expérience"] = pd.to_datetime(df_Allopneus["Date de l'expérience"], format='%d %B %Y').dt.strftime('%Y-%m-%d')
 df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
 df_Allopneus["Date de réponse"] = pd.to_datetime(df_Allopneus["Date de réponse"], format='%Y-%m-%dT%H:%M:%S.%fZ').dt.date
-df_Allopneus["Date de publication"] = pd.to_datetime(df_Allopneus["Date de publication"], errors='coerce')
-df_Allopneus = df_Allopneus[df_Allopneus["Date de publication"].notnull()]
 
 # Exportation du DataFrame dans un fichier csv.
 df_Allopneus.to_csv(r'C:\Users\Windows\Desktop\df_Allopneus_clean.csv', index=False)
