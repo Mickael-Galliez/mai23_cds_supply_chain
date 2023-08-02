@@ -76,8 +76,8 @@ for page in range(from_page, to_page + 1):
         date_experience = date_experience_element.text.strip() if date_experience_element else None
         date_experiences.append(date_experience)
         date_publication_element = avis.find('time', class_="")
-        pays_element = avis.find('svg',class_='icon_icon__ECGRl')
-        verif_element = avis.find('svg',class_='icon_icon__ECGRl').find_next('svg') if avis.find('svg',class_='icon_icon__ECGRl') else None
+        pays_element = avis.find(lambda tag: tag.name=='svg' and tag.get('class') == ['icon_icon__ECGRl'])
+        verif_element = avis.find(lambda tag: tag.name=='svg' and tag.get('class') == ['icon_icon__ECGRl']).find_next('svg') if avis.find(lambda tag: tag.name=='svg' and tag.get('class') == ['icon_icon__ECGRl']) else None
 
         if date_publication_element:
             date_publication = date_publication_element.get('datetime')
@@ -105,7 +105,7 @@ for page in range(from_page, to_page + 1):
             pays.append(None)
 
         if verif_element:
-            verified_status.append(1) if verif_element.text.strip() == 'Vérifié' else verified_status.append(0)
+            verified_status.append(1) if verif_element.find_next('span').text.strip() == 'Vérifié' else verified_status.append(0)
         else:
             pays.append(0)
 
