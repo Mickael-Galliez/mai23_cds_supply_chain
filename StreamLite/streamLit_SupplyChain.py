@@ -30,6 +30,9 @@ def demo_explor():
 
 def demo_reprGraph():
     st.write("### Representation Graphique")
+    st.write("### Visualisation des données")
+
+
 
 def demo_model1():
     st.write("### Modelisation I")
