@@ -8,6 +8,7 @@ Created on Thu Jul 21 10:07:36 2022
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 def demo_intro():
     st.write("### Introduction")
@@ -42,6 +43,15 @@ def demo_model2():
 
 def demo_interact():
     st.write("### Interactivite")
+
+    with st.chat_message("user"):
+        st.write("Hello 👋")
+        st.line_chart(np.random.randn(30, 3))
+
+    # Display a chat input widget.
+    input = st.chat_input("Say something")
+
+    st.write(input)
 
 
 def demo_supplyChain():
