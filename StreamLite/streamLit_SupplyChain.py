@@ -180,17 +180,21 @@ def demo_model2():
             with col4:
                 feat = st.selectbox('max_features', ["auto", "sqrt", "log2"])
 
+        #Plot d'example:
+        st.write("")
+        st.write(" Figure test: A Remplacer par Courbe ROC")
+        st.line_chart(np.random.randn(30, 3))
 
-        with st.spinner(text='Chargement du model'):
-            fileName = f'./dataBase_models/modelisation2_randFor_n_{n}_minsamplessplit_{split}_minsamplesleaf' \
-                       f'_{leaf}_maxfeatures_{feat}.pkl'
-            loaded_model = joblib.load(fileName)
+       # with st.spinner(text='Chargement du model'):
+        #    fileName = f'./dataBase_models/modelisation2_randFor_n_{n}_minsamplessplit_{split}_minsamplesleaf' \
+         #              f'_{leaf}_maxfeatures_{feat}.pkl'
+         #   loaded_model = joblib.load(fileName)
 
-            df = get_dfFastText()
-            _, x_test,_,y_test = get_splited_df(df.drop(['Sentiment'],df['Sentiment']))
-            y_pred = loaded_model.predict(x_test)
+        #    df = get_dfFastText()
+       #     _, x_test,_,y_test = get_splited_df(df.drop(['Sentiment'],df['Sentiment']))
+         #   y_pred = loaded_model.predict(x_test)
 
-        st.dataframe(classification_report(y_test, y_pred, output_dict=True).transpose())
+        #st.dataframe(classification_report(y_test, y_pred, output_dict=True).transpose())
 def demo_interact():
     st.write("### Interactivite")
 
