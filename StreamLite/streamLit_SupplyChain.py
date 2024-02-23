@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu feb 21 10:07:36 2024
+Created on Thu Jul 21 10:07:36 2022
 
-@author: joanAsselot & MickaelGalliez
+@author: yohancohen
 """
 
 import streamlit as st
@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import re
 import nltk
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -166,7 +167,7 @@ def demo_model2():
             with col2:
                 split = st.selectbox('min_samples_leaf',[2], disabled=True)
             with col3:
-                leaf = st.selectbox('min_samples_leaf',[5], disabled=True)
+                leaf = st.selectbox('min_samples_leaf',[1], disabled=True)
             with col4:
                 feat = st.selectbox('max_features',["auto"], disabled=True)
         else:
@@ -180,6 +181,16 @@ def demo_model2():
                 feat = st.selectbox('max_features', ["auto", "sqrt", "log2"])
 
 
+        with st.spinner(text='Chargement du model'):
+            fileName = f'./dataBase_models/modelisation2_randFor_n_{n}_minsamplessplit_{split}_minsamplesleaf' \
+                       f'_{leaf}_maxfeatures_{feat}.pkl'
+            loaded_model = joblib.load(fileName)
+
+            df = get_dfFastText()
+            _, x_test,_,y_test = get_splited_df(df.drop(['Sentiment'],df['Sentiment']))
+            y_pred = loaded_model.predict(x_test)
+
+        st.dataframe(classification_report(y_test, y_pred, output_dict=True).transpose())
 def demo_interact():
     st.write("### Interactivite")
 
