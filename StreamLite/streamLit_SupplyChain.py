@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul 21 10:07:36 2022
+Created on Thu Feb 21 10:07:36 2024
 
-@author: yohancohen
+@author: Asselot Joan && Mickael Galliez
 """
 
 import streamlit as st
@@ -12,6 +12,7 @@ import numpy as np
 import re
 import nltk
 import joblib
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -21,7 +22,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from gensim.models import FastText
+from sklearn.metrics import RocCurveDisplay, precision_recall_curve, auc, PrecisionRecallDisplay
 
+from streamlit_extras.let_it_rain import rain
 
 # Téléchargez la liste de stop words en français
 nltk.download('stopwords')
@@ -31,19 +34,15 @@ nltk.download('punkt')
 from nltk.corpus import stopwords
 
 @st.cache_resource
-def get_df():
+def get_df(fileName):
     """
-    charge le dataframe et applique les dernieres etapes de nettoyage.
-    doit etre applique 1 fois au debut de la fonction principale pour charge le dataframe dans le cache.
-
+    Renvoie le fichier csv designe par fileName sous forme de dataframe
+    :param fileName: string
     :return: dataframe
     """
-
-    df = pd.read_csv("df_featEngin.csv")
-
-    return df
+    return pd.read_csv(fileName)
 @st.cache_resource
-def get_dfFastText():
+def get_fulldfFastText():
     """
     Retourne un dataframe avec les colonnes commentaires et titres vectorises.
     Cette fonction est utile pour les sections modelisation II et III.
@@ -51,26 +50,25 @@ def get_dfFastText():
     :return:
     """
 
-    df = get_df()
-
+    df = get_df("df_featEngin.csv").loc[0:10000]
     df['embedding_Commentaire'] = df['Commentaire'].apply(get_text_embedding)
     df['embedding_Titres'] = df['Titres'].apply(get_text_embedding)
-
-    df_expanded = df_test['embedding_Commentaire'].apply(lambda x: pd.Series(x, dtype="float64")).add_prefix(
+    df_expanded = df['embedding_Commentaire'].apply(lambda x: pd.Series(x, dtype="float64")).add_prefix(
         'vectComment_')
-    df_expanded2 = df_test['embedding_Titres'].apply(lambda x: pd.Series(x, dtype="float64")).add_prefix('vectTitre_')
-
+    df_expanded2 = df['embedding_Titres'].apply(lambda x: pd.Series(x, dtype="float64")).add_prefix('vectTitre_')
     df = pd.concat([df_expanded,df_expanded2,df[['Nombre_avis_publie','longCommentaire','longTitres','nb_Mots_Commentaire',
         'nb_Mots_Titres', 'nb_majuscules_Commentaire',
            'nb_chiffres_Commentaire', 'nb_ponctuation_Commentaire',
            'nb_special_Commentaire', 'nb_majuscules_Titre', 'nb_chiffres_Titre',
            'nb_ponctuation_Titre', 'nb_special_Titre', 'Sentiment']]],axis=1)
 
+    return df
+
 
 @st.cache_resource
 def get_fastTextModel():
     """
-    retourne le model fast text. Ce model est long a construire aussi nous utiliserons le decorateur cache ressource
+    renvoie le model fast text. Ce model est long a construire aussi nous utiliserons le decorateur cache ressource
     cette fonction doit etre appele une premiere fois au debut de la fonction principale afin de charge le model dans le cache
     elle pourra etre appele a nouveau par la suite dans les differentes sections sans temps de chargement.
     :return: model fast text
@@ -112,6 +110,85 @@ def get_text_embedding(text):
 
     return text_embedding
 
+@st.cache_resource
+def get_saved_model(fileName):
+    """
+    Renvoie le model de classification .pkl designe par le parametre fileName
+    :param fileName: String path du model
+    :return: Model de classification
+    """
+    return joblib.load(fileName)
+
+def classification_plots(y_test,y_pred):
+    """
+    Ensemble des graphs pertinents a notre probleme de classification
+    :param y_test: list of int
+    :param y_pred: list of int
+    :return: None
+    """
+    colors = ["navy", "turquoise", "darkorange", "cornflowerblue", "teal"]
+
+
+
+    # ROC curve
+    plt.figure()
+    RocCurveDisplay.from_predictions(y_test, y_pred[:,1])
+    plt.xlabel('False Positive Rate (Sentiment Positif)')
+    plt.ylabel('True Positive Rate (Sensibilite)')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc='lower right')
+    st.pyplot(plt.gcf())
+
+
+    # Precision-Recall:
+    precision, recall, _ = precision_recall_curve(y_test, y_pred[:,0])
+    # average_precision[i] = average_precision_score(y_t, y_p)
+
+    plt.figure()
+    PrecisionRecallDisplay.from_predictions(y_test,y_pred[:,0])
+    # display = PrecisionRecallDisplay(
+    # recall=recall,
+    # precision=precision,
+    # )
+    # display.plot(name=f"Precision-recall Sentiment Negatif", color='navy')
+    plt.xlabel('Recall (Sensitivity)')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc='lower right')
+    st.pyplot(plt.gcf())
+
+    return None
+
+def rainningEmoji(emoji):
+    rain(
+        emoji=emoji,
+        font_size=90,
+        falling_speed=3,
+        animation_length=30,
+    )
+
+
+def Count_special(str):
+    upper, lower, number, ponctuation, special = 0, 0, 0, 0, 0
+    for i in range(len(str)):
+        if str[i].isupper():
+            upper += 1
+        elif str[i].islower():
+            lower += 1
+        elif str[i].isdigit():
+            number += 1
+        elif str[i] in ['!', '?']:
+            ponctuation += 1
+
+        elif str[i] in '@#$%&+=-<>~/\"*(){}[]':
+            special += 1
+    #     print('Upper case letters:', upper)
+    #     print('Lower case letters:', lower)
+    #     print('Number:', number)
+    #     print('Ponctuation:', ponctuation)
+    #     print('Special characters:', special)
+
+    return upper, lower, number, ponctuation, special
 
 
 #############################################################################################################
@@ -132,7 +209,7 @@ def demo_intro():
              "Positif ou Negatif.\n")
 
 def demo_explor():
-    df = get_df()
+    df = get_fulldf()
 
     st.write("### Exploration")
     st.write("#### WebScrapping")
@@ -151,14 +228,16 @@ def demo_model1():
     st.write("### Modelisation I")
 
 def demo_model2():
+
     st.write("### Modelisation II")
-    tab1, tab2 = st.tabs(["Random Forest", "XGBoost"])
-    with tab1:
+    tab_randomForest, tab_XGBoost = st.tabs(["Random Forest", "XGBoost"])
+
+    with tab_randomForest:
         col01, col02, col03 = st.columns(3)
         with col01:
             st.write("Hyperparametres:")
         with col03:
-            isBest = st.checkbox('Selection automatique')
+            isBest = st.checkbox("Best Random Forest Model")
 
         col1,col2,col3,col4  = st.columns(4)
         if isBest:
@@ -172,7 +251,7 @@ def demo_model2():
                 feat = st.selectbox('max_features',["auto"], disabled=True)
         else:
             with col1:
-                n = st.selectbox('n_estimator', [100, 200, 500])
+                n = st.selectbox('n_estimator', [100], disabled=True)
             with col2:
                 split = st.selectbox('min_samples_leaf', [2, 5, 10])
             with col3:
@@ -180,32 +259,106 @@ def demo_model2():
             with col4:
                 feat = st.selectbox('max_features', ["auto", "sqrt", "log2"])
 
-        #Plot d'example:
-        st.write("")
-        st.write(" Figure test: A Remplacer par Courbe ROC")
-        st.line_chart(np.random.randn(30, 3))
 
-       # with st.spinner(text='Chargement du model'):
-        #    fileName = f'./dataBase_models/modelisation2_randFor_n_{n}_minsamplessplit_{split}_minsamplesleaf' \
-         #              f'_{leaf}_maxfeatures_{feat}.pkl'
-         #   loaded_model = joblib.load(fileName)
+        with st.spinner(text='Chargement du model'):
+            fileName = f'./dataBase_models/modelisation2_randFor_n_{n}_minsamplessplit_{split}_minsamplesleaf' \
+                       f'_{leaf}_maxfeatures_{feat}.pkl'
+            loaded_model = get_saved_model(fileName)
 
-        #    df = get_dfFastText()
-       #     _, x_test,_,y_test = get_splited_df(df.drop(['Sentiment'],df['Sentiment']))
-         #   y_pred = loaded_model.predict(x_test)
+            x_test = get_df("./xTest_embedded.csv")
+            y_test = get_df("./yTest_embedded.csv")
+            y_pred = loaded_model.predict(x_test)
+            y_pred_prob = loaded_model.predict_proba(x_test)
 
-        #st.dataframe(classification_report(y_test, y_pred, output_dict=True).transpose())
+
+        st.dataframe(pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).transpose())
+
+
+        classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
+
+
+    with tab_XGBoost:
+        col01, col02, col03 = st.columns(3)
+        with col01:
+            st.write("Hyperparametres:")
+        with col03:
+            isBest = st.checkbox('Best XGBoost Model')
+
+        col1, col2, col3, col4 = st.columns(4)
+        if isBest:
+            with col1:
+                n = st.selectbox('max_depth', [7], disabled=True)
+            with col2:
+                split = st.selectbox('learning_rate', [0.2], disabled=True)
+            with col3:
+                leaf = st.selectbox('n_estimators', [200], disabled=True)
+            with col4:
+                evalMetric = st.selectbox('eval_metric', ['logloss'], disabled=True)
+
+        else:
+            with col1:
+                maxDepth = st.selectbox('max_depth', [5,7])
+            with col2:
+                learnRate = st.selectbox('learning_rate', [0.1, 0.2])
+            with col3:
+                nEstim = st.selectbox('n_estimators', [100,200])
+            with col4:
+                evalMetric = st.selectbox('eval_metric', ['logloss','error','aucpr'])
+
+
+        with st.spinner(text='Chargement du model'):
+            fileName = f'./dataBase_models/modelisation2_xgBoost_learningRate_{learnRate}_maxDepth_' \
+                       f'{maxDepth}_nEstimators' \
+                       f'_{nEstim}_evalMetric' \
+                       f'_{evalMetric}.pkl'
+            loaded_model = get_saved_model(fileName)
+
+            x_test = get_df("./xTest_embedded.csv")
+            y_test = get_df("./yTest_embedded.csv")
+            y_pred = loaded_model.predict(x_test)
+            y_pred_prob = loaded_model.predict_proba(x_test)
+
+        st.dataframe(pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).transpose())
+
+        classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
+
 def demo_interact():
+    # get_fastTextModel()
+    loadedModel = get_saved_model('./dataBase_models/modelisation2_xgBoost_learningRate_0.2_maxDepth_7_nEstimators_200_evalMetric_logloss.pkl')
+
     st.write("### Interactivite")
 
-    with st.chat_message("user"):
-        st.write("Hello 👋")
-        st.line_chart(np.random.randn(30, 3))
-
     # Display a chat input widget.
-    input = st.chat_input("Say something")
+    titre = st.text_input("Laissez un titre")
+    comment = st.text_area("Laissez un commentaire")
 
-    st.write(input)
+    titre = get_text_embedding(titre)
+    comment = get_text_embedding(comment)
+
+    df =  pd.concat([pd.Series(comment, dtype="float64").add_prefix('vectComment_'),pd.Series(titre,
+                                                                                             dtype="float64").add_prefix('vectTitre_')])
+
+    # df = pd.concat([df_expanded,df_expanded2,df[['Nombre_avis_publie','longCommentaire','longTitres','nb_Mots_Commentaire',
+    #     'nb_Mots_Titres', 'nb_majuscules_Commentaire',
+    #        'nb_chiffres_Commentaire', 'nb_ponctuation_Commentaire',
+    #        'nb_special_Commentaire', 'nb_majuscules_Titre', 'nb_chiffres_Titre',
+    #        'nb_ponctuation_Titre', 'nb_special_Titre', 'Sentiment']]],axis=1)
+
+    targetType = st.selectbox('Quel type de prediction ?',['Sentiment', 'Note'])
+
+    if targetType == 'Sentiment':
+        # y_pred = loadedModel.predict(data)
+        y_pred = 0
+        if y_pred:
+            rainningEmoji("😄")
+            st.write('Commentaire sympas')
+        else:
+            rainningEmoji("😱")
+            st.write('Pas content')
+
+
+
+    st.dataframe(df)
 
 
 
@@ -215,9 +368,8 @@ def demo_interact():
 def demo_supplyChain():
 
     #Chargement donnees dans le cache:
-    get_df()
-    #get_fastTextModel() # Cette etape necessitte 5 a 10 min de chargement.
-    #get_dfFastText()    # L'etape precedente est necessaire pour effectue celle ci
+
+
 
     #Side bar - Sommaire:
 
