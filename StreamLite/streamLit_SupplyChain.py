@@ -23,6 +23,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from gensim.models import FastText
 from sklearn.metrics import RocCurveDisplay, precision_recall_curve, auc, PrecisionRecallDisplay
+import shap
 
 from streamlit_extras.let_it_rain import rain
 
@@ -233,7 +234,7 @@ def demo_model2():
     tab_randomForest, tab_XGBoost = st.tabs(["Random Forest", "XGBoost"])
 
     with tab_randomForest:
-        col01, col02, col03 = st.columns(3)
+        col01, _, col03 = st.columns(3)
         with col01:
             st.write("Hyperparametres:")
         with col03:
@@ -275,6 +276,16 @@ def demo_model2():
 
 
         classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
+
+
+        X_train = get_df('xTrain_embedded.csv')
+        X_train = X_train.sample(100)
+        explainer = shap.Explainer(loaded_model)
+        shap_values = explainer.shap_values(X_train)
+
+        plt.figure()
+        shap.summary_plot(shap_values, features=sample_data, feature_names=X_train.columns)
+        st.pyplot(plt.gcf())
 
 
     with tab_XGBoost:
@@ -332,33 +343,60 @@ def demo_interact():
     titre = st.text_input("Laissez un titre")
     comment = st.text_area("Laissez un commentaire")
 
-    titre = get_text_embedding(titre)
-    comment = get_text_embedding(comment)
+    if titre != "" and comment != "":
+        df=pd.DataFrame()
+        dfComment = pd.DataFrame([get_text_embedding(comment)])
+        dfComment = dfComment.add_prefix('vectComment_')
 
-    df =  pd.concat([pd.Series(comment, dtype="float64").add_prefix('vectComment_'),pd.Series(titre,
-                                                                                             dtype="float64").add_prefix('vectTitre_')])
+        dfTitre = pd.DataFrame([get_text_embedding(comment)])
+        dfTitre = dfTitre.add_prefix('vectTitre_')
 
-    # df = pd.concat([df_expanded,df_expanded2,df[['Nombre_avis_publie','longCommentaire','longTitres','nb_Mots_Commentaire',
-    #     'nb_Mots_Titres', 'nb_majuscules_Commentaire',
-    #        'nb_chiffres_Commentaire', 'nb_ponctuation_Commentaire',
-    #        'nb_special_Commentaire', 'nb_majuscules_Titre', 'nb_chiffres_Titre',
-    #        'nb_ponctuation_Titre', 'nb_special_Titre', 'Sentiment']]],axis=1)
+        st.dataframe(dfComment)
+
+
+        df =  pd.concat([dfComment,dfTitre],axis=1)
+        df['Nombre_avis_publie'] = 0
+        df['nb_majuscules_Titre'], _, df['nb_chiffres_Titre'], df['nb_ponctuation_Titre'], df['nb_special_Titre'] = Count_special(
+            titre)
+        df['nb_majuscules_Commentaire'], _, df['nb_chiffres_Commentaire'], df['nb_ponctuation_Commentaire'], df['nb_special_Commentaire'] = Count_special(
+            comment)
+        df['longCommentaire'] = len(comment)
+        df['longTitres'] = len(titre)
+        df['nb_Mots_Commentaire'] = len(comment.split(' '))
+        df['nb_Mots_Titres'] = len(titre.split(' '))
+
+        # df.reset_index(drop=True, inplace=True)
+        # df = df.drop([0])
+
+        df_test = df.filter(like='vect')
+
+        df = pd.concat([df_test, df[
+            ['Nombre_avis_publie', 'longCommentaire', 'longTitres', 'nb_Mots_Commentaire', 'nb_Mots_Titres',
+             'nb_majuscules_Commentaire',
+             'nb_chiffres_Commentaire', 'nb_ponctuation_Commentaire',
+             'nb_special_Commentaire', 'nb_majuscules_Titre', 'nb_chiffres_Titre',
+             'nb_ponctuation_Titre', 'nb_special_Titre']]], axis=1)
 
     targetType = st.selectbox('Quel type de prediction ?',['Sentiment', 'Note'])
 
-    if targetType == 'Sentiment':
+    if targetType == 'Sentiment' and titre!="" and comment != "":
         # y_pred = loadedModel.predict(data)
-        y_pred = 0
+        y_pred = loadedModel.predict(df)
         if y_pred:
-            rainningEmoji("😄")
+            # rainningEmoji("😄")
             st.write('Commentaire sympas')
+            left_co, cent_co, last_co = st.columns(3)
+            with cent_co:
+                st.image("emojiHappy.webp")
         else:
-            rainningEmoji("😱")
+            # rainningEmoji("😱")
             st.write('Pas content')
+            left_co, cent_co, last_co = st.columns(3)
+            with cent_co:
+                st.image("emojiSad.png")
 
 
 
-    st.dataframe(df)
 
 
 
