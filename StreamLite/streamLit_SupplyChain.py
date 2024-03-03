@@ -25,6 +25,8 @@ from gensim.models import FastText
 from sklearn.metrics import RocCurveDisplay, precision_recall_curve, auc, PrecisionRecallDisplay
 import shap
 
+from keras.models import load_model
+
 from streamlit_extras.let_it_rain import rain
 
 # Téléchargez la liste de stop words en français
@@ -75,7 +77,7 @@ def get_fastTextModel():
     :return: model fast text
     """
     # Replace 'path/to/pretrained/embeddings' with the actual path to your downloaded embeddings file
-    return FastText.load_fasttext_format("FastText/cc.fr.300.bin.gz")
+    return FastText.load_fasttext_format("FastText/cc.fr.300.bin")
 
 def get_splited_df(data,target):
     X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2,
@@ -341,22 +343,18 @@ def demo_model3():
     with tab_1:
         col01, _, _ = st.columns(3)
 
-
         with st.spinner(text='Chargement du model'):
-            fileName = f'./dataBase_models/modelisation2_xgBoost_learningRate_{learnRate}_maxDepth_' \
-                       f'{maxDepth}_nEstimators' \
-                       f'_{nEstim}_evalMetric' \
-                       f'_{evalMetric}.pkl'
-            loaded_model = get_saved_model(fileName)
+            fileName = f'./dataBase_models/modelisation3_simpleNeuralNetwork.h5'
+            loaded_model = load_model(fileName)
 
             x_test = get_df("./xTest_embedded.csv")
             y_test = get_df("./yTest_embedded.csv")
             y_pred = loaded_model.predict(x_test)
-            y_pred_prob = loaded_model.predict_proba(x_test)
+            # y_pred_prob = loaded_model.predict(x_test)
 
-        st.dataframe(pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).transpose())
+        st.dataframe(pd.DataFrame(classification_report(y_test, y_pred[:,1]>0.5, output_dict=True)).transpose())
 
-        classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
+        classification_plots(y_test.Sentiment.tolist(),y_pred)
 
 
 def demo_interact():
@@ -441,7 +439,7 @@ def demo_supplyChain():
     st.header("Analyse de sentiments sur Pneus")
     st.sidebar.title("Sommaire")
     pages = ["Introduction","Exploration", "Representation Graphique", "Modélisation I","Modélisation II",
-             "Modélisation III"
+             "Modélisation III",
              "Interactivite"]
     page = st.sidebar.radio("Aller vers", pages)
 
