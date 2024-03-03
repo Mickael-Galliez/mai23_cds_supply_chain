@@ -333,6 +333,32 @@ def demo_model2():
 
         classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
 
+def demo_model3():
+    st.write("### Modelisation III")
+
+    tab_1, tab_2 = st.tabs(["architecure simple", "architecture 2"])
+
+    with tab_1:
+        col01, _, _ = st.columns(3)
+
+
+        with st.spinner(text='Chargement du model'):
+            fileName = f'./dataBase_models/modelisation2_xgBoost_learningRate_{learnRate}_maxDepth_' \
+                       f'{maxDepth}_nEstimators' \
+                       f'_{nEstim}_evalMetric' \
+                       f'_{evalMetric}.pkl'
+            loaded_model = get_saved_model(fileName)
+
+            x_test = get_df("./xTest_embedded.csv")
+            y_test = get_df("./yTest_embedded.csv")
+            y_pred = loaded_model.predict(x_test)
+            y_pred_prob = loaded_model.predict_proba(x_test)
+
+        st.dataframe(pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).transpose())
+
+        classification_plots(y_test.Sentiment.tolist(),y_pred_prob)
+
+
 def demo_interact():
     # get_fastTextModel()
     loadedModel = get_saved_model('./dataBase_models/modelisation2_xgBoost_learningRate_0.2_maxDepth_7_nEstimators_200_evalMetric_logloss.pkl')
@@ -415,6 +441,7 @@ def demo_supplyChain():
     st.header("Analyse de sentiments sur Pneus")
     st.sidebar.title("Sommaire")
     pages = ["Introduction","Exploration", "Representation Graphique", "Modélisation I","Modélisation II",
+             "Modélisation III"
              "Interactivite"]
     page = st.sidebar.radio("Aller vers", pages)
 
@@ -433,6 +460,9 @@ def demo_supplyChain():
 
         case "Modélisation II":
             demo_model2()
+
+        case "Modélisation III":
+            demo_model3()
 
         case "Interactivite":
             demo_interact()
